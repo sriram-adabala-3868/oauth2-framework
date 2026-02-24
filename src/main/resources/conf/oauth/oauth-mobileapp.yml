@@ -1,0 +1,68 @@
+base_uri: "oauthmobile"
+versions: "v1"
+org_context: false
+v1_handler_package: "com.zoho.accounts.internal.oauth2.mobile"
+
+audit_required: true
+throttle_required: true
+retry_header_allowed: true
+
+client_types_supported:
+  - production
+  - development
+  - sso_production
+
+sub_uris:
+  - sub_uri: auth
+    type: response_type
+    method: get
+    values:
+      - value: code
+        authorization: static
+        resource: static
+        audit_event_name: generate_grant_token
+        client_types:
+          - all
+
+  - sub_uri: token
+    type: grant_type
+    method: post
+    values:
+      - value: refresh_token
+        authorization: static
+        resource: static
+        audit_event_name: generate_access_token
+        client_types:
+          - all
+
+      - value: token-exchange
+        is_multimodel: true
+        models:
+          - name: sso_token
+            auth_keypair:
+              subject_token_type: refresh_token
+              requested_token_type: device_sso
+            resource: static
+            audit_event_name: generate_device_sso_token
+            client_types:
+              - sso_production
+              - production
+
+          - name: child_refresh_token
+            auth_keypair:
+              subject_token_type: id_token
+              actor_token_type: device_secret
+            resource: static
+            audit_event_name: generate_child_refresh_token
+            client_types:
+              - production
+              - development
+
+  - sub_uri: introspect
+    type: stand_alone
+    method: post
+    resource: static
+    authorization: static
+    audit: disabled
+    client_types:
+      - all
